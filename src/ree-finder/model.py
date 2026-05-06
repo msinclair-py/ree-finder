@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 try:
-    import intel_extension_for_pytorch
+    import intel_extension_for_pytorch  # noqa: F401
 except ImportError:
     pass
 

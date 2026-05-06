@@ -7,36 +7,35 @@ MD-driven relaxation and cluster extraction, and DFT geometry optimization.
 Functions are written to be self-contained so they can run on remote Parsl
 workers.
 """
-from Bio.PDB import PDBParser, PDBIO
-from Bio.PDB.Atom import Atom
-from Bio.PDB.Residue import Residue
-from boltz.main import predict
-from dataset import MultimodalDataset
-import dill as pickle
-import esm
-from esm import inverse_folding
-from transformers import AutoTokenizer, EsmModel
 import json
-from model import ESMBindMultiModal
-from molecular_simulations.simulate import Simulator
-import numpy as np
 import os
-import parsl
-from parsl import python_app
-from pathlib import Path
-from pyscf import gto, lib
-from pyscf.geomopt.geometric_solver import optimize
-from sklearn.cluster import AgglomerativeClustering
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
+
+import esm
+import numpy as np
 
 # Import torch before gpu4pyscf so the system CUDA stack gets loaded first;
 # otherwise gpu4pyscf's bundled cuda-12.8 nvjitlink shadows it and breaks
 # system torch's cusparse.
 import torch
+from Bio.PDB import PDBIO, PDBParser
+from Bio.PDB.Atom import Atom
+from Bio.PDB.Residue import Residue
+from boltz.main import predict
+from dataset import MultimodalDataset
+from esm import inverse_folding
+from model import ESMBindMultiModal
+from molecular_simulations.simulate import Simulator
+from pyscf import gto, lib
+from pyscf.geomopt.geometric_solver import optimize
+from sklearn.cluster import AgglomerativeClustering
 from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, EsmModel
+
 try:
-    import intel_extension_for_pytorch
+    import intel_extension_for_pytorch  # noqa: F401
 except ImportError:
     pass
 
@@ -45,13 +44,7 @@ try:
 except ImportError:
     from pyscf import dft
 
-from defaults import (
-    BINDING_ATOMS,
-    MIN_COORD,
-    USES_BACKBONE_O,
-    ION_CHARGE,
-    ION_SPIN
-)
+from defaults import BINDING_ATOMS, ION_CHARGE, ION_SPIN, MIN_COORD, USES_BACKBONE_O
 
 # Resolve project-relative paths against this file rather than the worker's
 # cwd, since parsl workers don't necessarily run from the project root.
@@ -146,7 +139,7 @@ def sequence_embeddings(
     min_repr_esm = np.load(str(constants / 'esm_repr_min.npy'))
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = EsmModel.from_pretrained(model_id).to(device).eval()
+    model = EsmModel.from_pretrained(model_id).to(device).eval()  # type: ignore[arg-type]
 
     with torch.no_grad():
         for j in range(0, len(sequences), batch_size):
@@ -201,10 +194,10 @@ def structural_embeddings(
     max_repr_esm = np.load(str(constants / 'esm_if_repr_max.npy'))
     min_repr_esm = np.load(str(constants / 'esm_if_repr_min.npy'))
 
-    device = torch.device(device)
+    torch_device = torch.device(device)
     model, alphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
     model.eval()
-    model = model.to(device)
+    model = model.to(torch_device)
 
     with torch.no_grad():
         for header, pdb in zip(header_labels, pdbs, strict=True):
@@ -264,7 +257,11 @@ def esmbind_inference(
     f1_threshold_list, mcc_threshold_list = [], []
     for i in range(1, 6):
         model = ESMBindMultiModal(model_conf)
-        checkpoint = torch.load(ensemble_path / f'fold_{i}.pt', map_location='cpu', weights_only=False)
+        checkpoint = torch.load(
+            ensemble_path / f'fold_{i}.pt',
+            map_location='cpu',
+            weights_only=False,
+        )
 
         model.params.encoder.load_state_dict(checkpoint['swa_encoder'], strict=False)
         model.params.classifier.load_state_dict(checkpoint['swa_classifier'], strict=False)
@@ -274,7 +271,7 @@ def esmbind_inference(
         model.eval()
         model.to(device)
         models.append(model)
-    
+
     threshold_f1, threshold_mcc = {}, {}
     keys = f1_threshold_list[0].keys()
 
@@ -304,16 +301,16 @@ def esmbind_inference(
                 feats_1 = feats_1.to(device)
                 feats_2 = feats_2.to(device)
                 masks = masks.to(device)
-                
+
                 outputs = []
                 for model in models:
-                    model.ligand = ligand
+                    model.ligand = ligand  # type: ignore[assignment]
                     output = model(feats_1, feats_2, ligand)
                     output = torch.sigmoid(torch.masked_select(output, masks.bool()))
                     outputs.append(output)
 
-                outputs = torch.stack(outputs).mean(0)
-                predictions[ligand][_id[0]] = outputs.detach().cpu().numpy()
+                stacked = torch.stack(outputs).mean(0)
+                predictions[ligand][_id[0]] = stacked.detach().cpu().numpy()
 
     return predictions
 
@@ -566,7 +563,7 @@ def extract_clusters(
     state = sim.simulation.context.getState(getPositions=True)
     positions = np.array(state.getPositions(asNumpy=True))
 
-    by_resid = {}
+    by_resid: dict[tuple[str, int], list] = {}
     for atom in sim.simulation.topology.atoms():
         key = (atom.residue.name, int(atom.residue.id))
         by_resid.setdefault(key, []).append(atom)
@@ -797,7 +794,7 @@ def geomopt(
     mf.grids.build()
 
     mol_eq = optimize(
-        mf, 
+        mf,
         maxsteps=max_steps,
         constraints=constraints,
     )

@@ -1,11 +1,12 @@
 """Dataset wrapping per-protein ESM-2 and ESM-IF embeddings for ESMBind."""
+from pathlib import Path
+
 import numpy as np
 import torch
-from pathlib import Path
 from torch.utils.data import Dataset
 
 try:
-    import intel_extension_for_pytorch
+    import intel_extension_for_pytorch  # noqa: F401
 except ImportError:
     pass
 
@@ -88,18 +89,18 @@ class MultimodalDataset(Dataset):
             batch_id.append(_id)
             padded_feat_1 = np.zeros((maxlen, self.dim_1))
             padded_feat_1[:feat_1.shape[0], :] = feat_1
-            padded_feat_1 = torch.tensor(padded_feat_1, dtype=torch.float)
-            batch_feat_1.append(padded_feat_1)
+            tensor_feat_1 = torch.tensor(padded_feat_1, dtype=torch.float)
+            batch_feat_1.append(tensor_feat_1)
 
             padded_feat_2 = np.zeros((maxlen, self.dim_2))
             padded_feat_2[:feat_2.shape[0], :] = feat_2
-            padded_feat_2 = torch.tensor(padded_feat_2, dtype=torch.float)
-            batch_feat_2.append(padded_feat_2)
+            tensor_feat_2 = torch.tensor(padded_feat_2, dtype=torch.float)
+            batch_feat_2.append(tensor_feat_2)
 
             mask = np.zeros(maxlen)
             mask[:feat_1.shape[0]] = 1
-            mask = torch.tensor(mask, dtype=torch.long)
-            batch_mask.append(mask)
+            tensor_mask = torch.tensor(mask, dtype=torch.long)
+            batch_mask.append(tensor_mask)
 
         return (
             batch_id,

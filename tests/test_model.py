@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 torch = pytest.importorskip('torch')
-from model import ESMBindBase, ESMBindMultiModal, ESMBindSingle
+from model import ESMBindBase, ESMBindMultiModal, ESMBindSingle  # noqa: E402
 
 LIGANDS = ['ZN', 'CA', 'MG', 'MN', 'FE', 'CO', 'CU']
 

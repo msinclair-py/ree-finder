@@ -5,28 +5,34 @@ graph: sequences → folded structures → embeddings → ESMBind predictions �
 per-(protein, ion) MD relaxation → per-cluster DFT geometry optimization.
 """
 from datetime import datetime
-import numpy as np
-import parsl
-from parsl import python_app
 from pathlib import Path
+
+import numpy as np
 
 # Import torch before gpu4pyscf so the system CUDA stack (linked against
 # system torch) gets loaded first; otherwise gpu4pyscf's bundled cuda-12.8
 # nvjitlink shadows it and breaks system torch's cusparse.
-import torch
+from parsl import python_app
+
 try:
-    import intel_extension_for_pytorch
+    import intel_extension_for_pytorch  # noqa: F401
 except ImportError:
     pass
 
 try:
-    from gpu4pyscf import dft
+    from gpu4pyscf import dft  # noqa: F401
     qm_exec = 'gpu'
 except ImportError:
-    from pyscf import dft
     qm_exec = 'cpu'
 
-from apps import *
+from apps import (
+    esmbind_inference,
+    fold,
+    geomopt,
+    relax,
+    sequence_embeddings,
+    structural_embeddings,
+)
 from dataset import MultimodalDataset
 
 # Which esmbind output channel to use for each target ion.

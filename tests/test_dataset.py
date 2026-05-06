@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip('torch')
-from dataset import MultimodalDataset
+from dataset import MultimodalDataset  # noqa: E402
 
 
 @pytest.fixture

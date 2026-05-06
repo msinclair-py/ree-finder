@@ -27,8 +27,10 @@ def _write_minimal_pdb(path):
 
 
 def test_build_amber_system_emits_correct_scripts(tmp_path, monkeypatch):
-    out = tmp_path / 'out'; out.mkdir()
-    build = tmp_path / 'build'; build.mkdir()
+    out = tmp_path / 'out'
+    out.mkdir()
+    build = tmp_path / 'build'
+    build.mkdir()
     pdb = build / 'protein_with_metal.pdb'
     _write_minimal_pdb(pdb)
 
@@ -79,8 +81,10 @@ def test_build_amber_system_emits_correct_scripts(tmp_path, monkeypatch):
 
 def test_build_amber_system_scales_salt_with_concentration(tmp_path, monkeypatch):
     """The number of salt ions tracks the requested concentration."""
-    out = tmp_path / 'out'; out.mkdir()
-    build = tmp_path / 'build'; build.mkdir()
+    out = tmp_path / 'out'
+    out.mkdir()
+    build = tmp_path / 'build'
+    build.mkdir()
     pdb = build / 'p.pdb'
     _write_minimal_pdb(pdb)
 
@@ -104,8 +108,10 @@ def test_build_amber_system_scales_salt_with_concentration(tmp_path, monkeypatch
 
 def test_build_amber_system_ion_mask_for_calcium(tmp_path, monkeypatch):
     """Ion mask uses ION_CHARGE to format the parmed selector."""
-    out = tmp_path / 'out'; out.mkdir()
-    build = tmp_path / 'build'; build.mkdir()
+    out = tmp_path / 'out'
+    out.mkdir()
+    build = tmp_path / 'build'
+    build.mkdir()
     pdb = build / 'p.pdb'
     _write_minimal_pdb(pdb)
 
