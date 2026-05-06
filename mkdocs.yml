@@ -1,0 +1,22 @@
+site_name: ree-finder
+site_description: Pipeline for predicting and refining metal binding sites in proteins
+repo_url: https://github.com/msinclair-py/ree-finder
+repo_name: msinclair-py/ree-finder
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md

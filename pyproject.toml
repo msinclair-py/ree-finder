@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ree-finder"
+version = "0.1.0"
+description = "Pipeline for predicting and refining metal (incl. rare-earth) binding sites in proteins"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "msinclair-py" }]
+dependencies = [
+    "biopython",
+    "boltz",
+    "dill",
+    "fair-esm",
+    "transformers",
+    "numpy",
+    "parsl",
+    "pyscf",
+    "scikit-learn",
+    "torch",
+    "pyyaml",
+    "molecular-simulations",
+]
+
+[project.optional-dependencies]
+gpu = ["gpu4pyscf"]
+intel = ["intel-extension-for-pytorch"]
+dev = ["pytest", "ruff", "mypy"]
+docs = ["mkdocs", "mkdocs-material"]
+
+[tool.setuptools]
+py-modules = ["apps", "dataset", "defaults", "model", "pipeline"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "src/ree-finder"
+ignore_missing_imports = true
