@@ -1,0 +1,7 @@
+pytest
+ruff
+mypy
+numpy
+biopython
+scikit-learn
+pyyaml

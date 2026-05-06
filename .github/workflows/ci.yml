@@ -19,10 +19,13 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: requirements-test.txt
 
-      - name: Install test tooling
-        run: pip install pytest ruff mypy
+      - name: Install package without runtime deps
+        run: pip install --no-deps -e .
+
+      - name: Install test dependencies
+        run: pip install -r requirements-test.txt
 
       - name: Lint (ruff)
         run: ruff check .
