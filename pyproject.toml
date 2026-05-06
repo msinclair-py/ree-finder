@@ -18,6 +18,7 @@ dependencies = [
     "transformers",
     "numpy",
     "parsl",
+    "pydantic",
     "pyscf",
     "scikit-learn",
     "torch",
@@ -32,7 +33,7 @@ dev = ["pytest", "ruff", "mypy"]
 docs = ["mkdocs", "mkdocs-material"]
 
 [tool.setuptools]
-py-modules = ["apps", "dataset", "defaults", "model", "pipeline"]
+py-modules = ["apps", "dataset", "defaults", "model", "pipeline", "schemas"]
 
 [tool.ruff]
 line-length = 100

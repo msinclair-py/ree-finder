@@ -4,7 +4,6 @@ Wires the per-stage kernels in :mod:`apps` into a fan-out / fan-back-out
 graph: sequences → folded structures → embeddings → ESMBind predictions →
 per-(protein, ion) MD relaxation → per-cluster DFT geometry optimization.
 """
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +33,7 @@ from apps import (
     structural_embeddings,
 )
 from dataset import MultimodalDataset
+from schemas import PipelineConfig
 
 # Which esmbind output channel to use for each target ion.
 # ESMBind was trained on {MG, FE, CU, CO, CA, MN, ZN}; Nd is proxied through Ca.
@@ -80,60 +80,35 @@ def binding_residues(
 class Pipeline:
     """End-to-end orchestrator for the REE binding-site workflow.
 
-    Holds shared run-level configuration (paths, ML weights, MD/QM options,
-    ion list) and registers each :mod:`apps` kernel as a Parsl ``python_app``
-    targeting an appropriate executor. ``run`` consumes a multi-FASTA and
-    drives the fan-out → reduce → fan-out execution graph.
+    Takes a validated :class:`schemas.PipelineConfig` and registers each
+    :mod:`apps` kernel as a Parsl ``python_app`` targeting an appropriate
+    executor. ``run`` consumes a multi-FASTA and drives the fan-out → reduce
+    → fan-out execution graph.
 
     Attributes:
-        ensemble_path: Directory containing ESMBind ``fold_{1..5}.pt`` weights.
-        amberhome: Path used as ``$AMBERHOME`` for ``tleap``/``parmed``.
-        basis: PySCF basis set used in the DFT stage.
-        functional: PySCF exchange-correlation functional.
-        dispersion: Dispersion correction name passed to ``mf.disp``.
-        water_cutoff: Distance cutoff (Å) for waters included in QM clusters.
-        ions: Ion codes to evaluate per protein.
-        device: Torch device for ML stages.
-        run_dir: Root output directory for this run; defaults to a
-            timestamped folder under ``outputs/``.
+        config: The :class:`PipelineConfig` driving this run.
+        ensemble_path, amberhome, basis, functional, dispersion,
+        water_cutoff, ions, device, run_dir: Mirrored from ``config`` for
+            convenience inside :meth:`run`.
     """
 
-    def __init__(
-        self,
-        amberhome: Path,
-        ensemble_path: Path = Path('esmbind_weights'),
-        basis: str = 'def2-TZVP',
-        functional: str = 'B3LYP',
-        dispersion: str = 'd3bj',
-        water_cutoff: float = 4.0,
-        ions: list[str] = ['CA', 'MG', 'FE', 'ND'],
-        device: str = 'cuda',
-        run_dir: Path | None = None,
-    ):
-        """Configure shared run state and wrap kernels as Parsl apps.
+    def __init__(self, config: PipelineConfig):
+        """Capture run config and wrap each kernel as a Parsl app.
 
         Args:
-            amberhome: ``$AMBERHOME`` install root.
-            ensemble_path: Directory with ESMBind ``fold_{1..5}.pt`` weights.
-            basis: DFT basis set name.
-            functional: DFT exchange-correlation functional name.
-            dispersion: Dispersion correction passed to PySCF.
-            water_cutoff: Å cutoff for waters in QM clusters.
-            ions: Ion codes to scan per protein.
-            device: Torch device for ML stages.
-            run_dir: Output root; defaults to ``outputs/<YYYYmmdd_HHMMSS>``.
+            config: Validated :class:`PipelineConfig`. Construct directly,
+                or load from YAML via :meth:`PipelineConfig.from_yaml`.
         """
-        self.ensemble_path = Path(ensemble_path)
-        self.amberhome = Path(amberhome)
-        self.basis = basis
-        self.functional = functional
-        self.dispersion = dispersion
-        self.water_cutoff = water_cutoff
-        self.ions = ions
-        self.device = device
-        if run_dir is None:
-            run_dir = Path('outputs') / datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.run_dir = Path(run_dir)
+        self.config = config
+        self.ensemble_path = config.ensemble_path
+        self.amberhome = config.amberhome
+        self.basis = config.basis
+        self.functional = config.functional
+        self.dispersion = config.dispersion
+        self.water_cutoff = config.water_cutoff
+        self.ions = config.ions
+        self.device = config.device
+        self.run_dir = config.run_dir
         self._register_apps()
 
     def _register_apps(self) -> None:

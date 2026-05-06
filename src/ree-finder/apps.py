@@ -7,11 +7,9 @@ MD-driven relaxation and cluster extraction, and DFT geometry optimization.
 Functions are written to be self-contained so they can run on remote Parsl
 workers.
 """
-import json
 import os
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import esm
 import numpy as np
@@ -45,6 +43,7 @@ except ImportError:
     from pyscf import dft
 
 from defaults import BINDING_ATOMS, ION_CHARGE, ION_SPIN, MIN_COORD, USES_BACKBONE_O
+from schemas import ClusterMetadata, ESMBindMultiModalConfig, OptimizedClusterMetadata
 
 # Resolve project-relative paths against this file rather than the worker's
 # cwd, since parsl workers don't necessarily run from the project root.
@@ -243,7 +242,7 @@ def esmbind_inference(
 
     # Architecture is pinned by the trained ESMBind weights:
     # feature_dim_1 = ESM-2 (1280), feature_dim_2 = ESM-IF (512).
-    model_conf = SimpleNamespace(
+    model_conf = ESMBindMultiModalConfig(
         feature_dim_1=1280,
         feature_dim_2=512,
         hidden_dim=128,
@@ -608,16 +607,16 @@ def extract_clusters(
                 x, y, z = positions[a.index]
                 f.write(f'{el:<3s} {x:12.6f} {y:12.6f} {z:12.6f}\n')
 
-        with open(json_path, 'w') as f:
-            json.dump({
-                'ion': ion,
-                'ion_resid': ion_resid,
-                'ion_formal_charge': ION_CHARGE[ion],
-                'spin_multiplicity_guess': ION_SPIN[ion],
-                'binding_residues': list(binding_resids),
-                'n_atoms': len(atoms_to_write),
-                'water_cutoff_A': water_cutoff,
-            }, f, indent=2)
+        metadata = ClusterMetadata(
+            ion=ion,
+            ion_resid=ion_resid,
+            ion_formal_charge=ION_CHARGE[ion],
+            spin_multiplicity_guess=ION_SPIN[ion],
+            binding_residues=list(binding_resids),
+            n_atoms=len(atoms_to_write),
+            water_cutoff_A=water_cutoff,
+        )
+        json_path.write_text(metadata.model_dump_json(indent=2))
 
         written.append(xyz_path)
 
@@ -774,14 +773,13 @@ def geomopt(
 
     lib.num_threads(num_threads)
 
-    with open(json_path) as f:
-        metadata = json.load(f)
+    metadata = ClusterMetadata.model_validate_json(Path(json_path).read_text())
 
     mol = gto.M(
         atom=geom_str,
         basis=basis,
-        charge=metadata['ion_formal_charge'],
-        spin=metadata['spin_multiplicity_guess'] - 1,
+        charge=metadata.ion_formal_charge,
+        spin=metadata.spin_multiplicity_guess - 1,
         verbose=verbose,
         max_memory=max_memory,
         symmetry=False
@@ -815,16 +813,16 @@ def geomopt(
         for el, (x, y, z) in zip(elements, opt_coords, strict=True):
             f.write(f'{el:<3s} {x:12.6f} {y:12.6f} {z:12.6f}\n')
 
+    out_meta = OptimizedClusterMetadata(
+        **metadata.model_dump(),
+        energy_hartree=float(e_final),
+        basis=basis,
+        functional=functional,
+        dispersion=dispersion,
+        grid_level=grid_level,
+        converged=bool(getattr(mf_final, 'converged', False)),
+    )
     out_json = xyz_path.with_name(f'{xyz_path.stem}_opt.json')
-    with open(out_json, 'w') as f:
-        json.dump({
-            **metadata,
-            'energy_hartree': float(e_final),
-            'basis': basis,
-            'functional': functional,
-            'dispersion': dispersion,
-            'grid_level': grid_level,
-            'converged': bool(getattr(mf_final, 'converged', False)),
-        }, f, indent=2)
+    out_json.write_text(out_meta.model_dump_json(indent=2))
 
     return opt_coords, e_final

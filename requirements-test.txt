@@ -5,3 +5,4 @@ numpy
 biopython
 scikit-learn
 pyyaml
+pydantic
