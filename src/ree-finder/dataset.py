@@ -63,10 +63,11 @@ class MultimodalDataset(Dataset):
         feat_2 = np.load(self.str_dir / f'{_id}.npy')
         return _id, feat_1, feat_2
 
-    def padding(self, batch, maxlen: int) -> tuple[list[int],
-                                                   torch.Tensor,
-                                                   torch.Tensor,
-                                                   torch.Tensor]:
+    def padding(
+        self,
+        batch: list[tuple[str, np.ndarray, np.ndarray]],
+        maxlen: int,
+    ) -> tuple[list[str], torch.Tensor, torch.Tensor, torch.Tensor]:
         """Zero-pad a batch of variable-length embeddings to ``maxlen``.
 
         Args:
@@ -109,10 +110,10 @@ class MultimodalDataset(Dataset):
             torch.stack(batch_mask),
         )
 
-    def collate_fn(self, batch) -> tuple[list[int],
-                                         torch.Tensor,
-                                         torch.Tensor,
-                                         torch.Tensor]:
+    def collate_fn(
+        self,
+        batch: list[tuple[str, np.ndarray, np.ndarray]],
+    ) -> tuple[list[str], torch.Tensor, torch.Tensor, torch.Tensor]:
         """DataLoader collate hook that pads each batch to its longest member."""
         maxlen = max([feat_1.shape[0] for _, feat_1, _ in batch])
         return self.padding(batch, maxlen)

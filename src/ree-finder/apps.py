@@ -262,8 +262,8 @@ def esmbind_inference(
             weights_only=False,
         )
 
-        model.params.encoder.load_state_dict(checkpoint['swa_encoder'], strict=False)
-        model.params.classifier.load_state_dict(checkpoint['swa_classifier'], strict=False)
+        model.params['encoder'].load_state_dict(checkpoint['swa_encoder'], strict=False)
+        model.params['classifier'].load_state_dict(checkpoint['swa_classifier'], strict=False)
         f1_threshold_list.append(checkpoint['threshold_f1'])
         mcc_threshold_list.append(checkpoint['threshold_mcc'])
         model.training = False
@@ -526,7 +526,7 @@ def build_amber_system(
 
 
 def extract_clusters(
-    sim,
+    sim: Simulator,
     ion: str,
     ion_to_group: dict,
     output_dir: Path,
@@ -725,7 +725,7 @@ def geomopt(
     verbose: int=4,
     max_memory: int=160000,
     grid_level: int=3
-):
+) -> tuple[np.ndarray, float]:
     """Optimize the geometry of an extracted cluster with DFT, then re-evaluate.
 
     Reads atoms from ``xyz_path`` and charge/spin metadata from ``json_path``

@@ -87,9 +87,15 @@ class Pipeline:
 
     Attributes:
         config: The :class:`PipelineConfig` driving this run.
-        ensemble_path, amberhome, basis, functional, dispersion,
-        water_cutoff, ions, device, run_dir: Mirrored from ``config`` for
-            convenience inside :meth:`run`.
+        ensemble_path: Mirrored from ``config`` for convenience inside :meth:`run`.
+        amberhome: Mirrored from ``config``.
+        basis: Mirrored from ``config``.
+        functional: Mirrored from ``config``.
+        dispersion: Mirrored from ``config``.
+        water_cutoff: Mirrored from ``config``.
+        ions: Mirrored from ``config``.
+        device: Mirrored from ``config``.
+        run_dir: Mirrored from ``config``.
     """
 
     def __init__(self, config: PipelineConfig):

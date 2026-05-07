@@ -30,7 +30,7 @@ dependencies = [
 gpu = ["gpu4pyscf"]
 intel = ["intel-extension-for-pytorch"]
 dev = ["pytest", "ruff", "mypy"]
-docs = ["mkdocs", "mkdocs-material"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 
 [tool.setuptools]
 py-modules = ["apps", "dataset", "defaults", "model", "pipeline", "schemas"]

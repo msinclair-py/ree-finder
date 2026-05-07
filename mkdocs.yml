@@ -18,5 +18,31 @@ markdown_extensions:
   - toc:
       permalink: true
 
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src/ree-finder]
+          options:
+            docstring_style: google
+            allow_inspection: false
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
+            members_order: source
+            filters: ["!^_"]
+
 nav:
   - Home: index.md
+  - API Reference:
+      - Overview: api/index.md
+      - pipeline: api/pipeline.md
+      - apps: api/apps.md
+      - dataset: api/dataset.md
+      - model: api/model.md
+      - schemas: api/schemas.md
+      - defaults: api/defaults.md

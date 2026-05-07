@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from schemas import ESMBindBaseConfig, ESMBindMultiModalConfig, ESMBindSingleConfig
 
 try:
     import intel_extension_for_pytorch  # noqa: F401
@@ -22,7 +23,7 @@ class ESMBindBase(nn.Module):
             and ``noise_level`` attributes.
     """
 
-    def __init__(self, conf):
+    def __init__(self, conf: ESMBindBaseConfig):
         super(ESMBindBase, self).__init__()
         self.noise_level = conf.noise_level
         feature_dim = getattr(conf, "feature_dim", 1)
@@ -59,15 +60,20 @@ class ESMBindBase(nn.Module):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
 
-    def add_noise(self, input):
+    def add_noise(self, input: torch.Tensor) -> torch.Tensor:
         """Add zero-mean Gaussian noise scaled by ``self.noise_level``."""
         return input + self.noise_level * torch.randn_like(input)
 
-    def get_logits(self, input, ligand):
+    def get_logits(self, input: torch.Tensor, ligand: str) -> torch.Tensor:
         """Run the ligand-specific classification head and squeeze the trailing dim."""
         return self.classifier_heads[ligand](input).squeeze(-1)
 
-    def forward(self, protein_feat, ligand, training=True):
+    def forward(
+        self,
+        protein_feat: torch.Tensor,
+        ligand: str,
+        training: bool = True,
+    ) -> torch.Tensor:
         """Project features and emit per-residue logits for ``ligand``.
 
         Args:
@@ -96,7 +102,7 @@ class ESMBindSingle(ESMBindBase):
             replaces the single-layer encoder from :class:`ESMBindBase`.
     """
 
-    def __init__(self, conf):
+    def __init__(self, conf: ESMBindSingleConfig):
         super(ESMBindSingle, self).__init__(conf)
         modules = [
             nn.LayerNorm(conf.feature_dim, eps=1e-6),
@@ -127,7 +133,7 @@ class ESMBindMultiModal(ESMBindBase):
             and ``noise_level`` attributes.
     """
 
-    def __init__(self, conf):
+    def __init__(self, conf: ESMBindMultiModalConfig):
         super(ESMBindMultiModal, self).__init__(conf)
         # Define feature and hidden dimensions
         self.feature_dims = [conf.feature_dim_1, conf.feature_dim_2]
@@ -146,7 +152,12 @@ class ESMBindMultiModal(ESMBindBase):
             {"encoder": self.input_blocks, "classifier": self.classifier_heads}
         )
 
-    def create_block(self, input_dim, output_dim, dropout_rate):
+    def create_block(
+        self,
+        input_dim: int,
+        output_dim: int,
+        dropout_rate: float,
+    ) -> nn.Sequential:
         """Return a LayerNorm → Dropout → Linear → LeakyReLU encoder block."""
         return nn.Sequential(
             nn.LayerNorm(input_dim, eps=1e-6),
@@ -155,7 +166,13 @@ class ESMBindMultiModal(ESMBindBase):
             nn.LeakyReLU(),
         )
 
-    def forward(self, feat_a, feat_b, ligand, training=True):
+    def forward(  # type: ignore[override]
+        self,
+        feat_a: torch.Tensor,
+        feat_b: torch.Tensor,
+        ligand: str,
+        training: bool = True,
+    ) -> torch.Tensor:
         """Fuse sequence and structure features and emit per-residue logits.
 
         Args:
